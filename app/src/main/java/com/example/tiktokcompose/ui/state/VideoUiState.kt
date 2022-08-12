@@ -6,15 +6,13 @@ import com.example.tiktokcompose.domain.models.VideoData
 
 data class VideoUiState(
     var player: Player? = null,
-    val videos: List<VideoData> = emptyList()
+    val videos: List<VideoData> = emptyList(),
+    var currentPage: Int = 0,
+    val showPlayer: Boolean = false
 ) {
 
-    val showPlayer: Boolean
-        get() {
-            return player?.playbackState == Player.STATE_READY
-        }
-
     fun prepareContent(index: Int) {
+        currentPage = index
         val mediaItem = MediaItem.fromUri(videos[index].mediaUri)
         player?.let { exoPlayer->
             exoPlayer.setMediaItem(mediaItem)

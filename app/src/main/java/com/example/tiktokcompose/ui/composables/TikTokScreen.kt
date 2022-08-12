@@ -8,8 +8,10 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Icon
@@ -27,6 +29,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.media3.common.Player
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import coil.compose.rememberAsyncImagePainter
 import com.example.tiktokcompose.ui.state.VideoUiState
 import com.example.tiktokcompose.viewmodel.TikTokViewModel
 import com.google.accompanist.pager.ExperimentalPagerApi
@@ -43,16 +46,6 @@ fun TikTokScreen(
     modifier: Modifier = Modifier,
     viewModel: TikTokViewModel = hiltViewModel()
 ) {
-
-    val context = LocalContext.current
-    ComposableLifecycle { lifecycleOwner, event ->
-        when (event) {
-            Lifecycle.Event.ON_START -> viewModel.createPlayer(context)
-            Lifecycle.Event.ON_STOP -> viewModel.releasePlayer()
-            else -> {}
-        }
-    }
-
     Box(
         modifier = modifier
             .fillMaxSize(),
@@ -68,7 +61,8 @@ fun TikTokScreen(
 @OptIn(ExperimentalPagerApi::class)
 @Composable
 fun VideoPager(
-    state: VideoUiState
+    state: VideoUiState,
+    viewModel: TikTokViewModel = hiltViewModel()
 ) {
     val pagerState = rememberPagerState()
 
@@ -89,7 +83,8 @@ fun VideoPager(
         if (index == currentPage) {
             state.prepareContent(index)
             VideoCard(
-                state = state
+                state = state,
+                page = currentPage
             )
         }
     }
@@ -97,8 +92,18 @@ fun VideoPager(
 
 @Composable
 fun VideoCard(
-    state: VideoUiState
+    state: VideoUiState,
+    page: Int,
+    viewModel: TikTokViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
+    ComposableLifecycle { _, event ->
+        when (event) {
+            Lifecycle.Event.ON_START -> viewModel.createPlayer(context)
+            Lifecycle.Event.ON_STOP -> viewModel.releasePlayer()
+            else -> {}
+        }
+    }
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -108,18 +113,19 @@ fun VideoCard(
                 player = state.player!!
             )
         }
-//        if (!state.showPlayer) {
-//            Image(
-//                painter = rememberAsyncImagePainter(
-//                    model = videoData?.previewImageUri
-//                ),
-//                contentDescription = "Preview",
-//                modifier = Modifier
-//                    .aspectRatio(videoData?.aspectRatio ?: 1f)
-//                    .align(Alignment.Center)
-//                    .fillMaxSize()
-//            )
-//        } // TODO tekrar aktif hale getirilecek
+        if (!state.showPlayer) {
+            val video = state.videos[page]
+            Image(
+                painter = rememberAsyncImagePainter(
+                    model = video.previewImageUri
+                ),
+                contentDescription = "Preview",
+                modifier = Modifier
+                    .aspectRatio(video.aspectRatio ?: 1f)
+                    .align(Alignment.Center)
+                    .fillMaxSize()
+            )
+        }
     }
 }
 
@@ -129,7 +135,7 @@ fun Player(
     player: Player,
     modifier: Modifier = Modifier
 ) {
-    val playerView = getPlayerView(player)
+    val playerView = rememberPlayerView(player)
     var playPauseIconVisibility by remember {
         mutableStateOf(false)
     }
@@ -183,7 +189,7 @@ fun Player(
 }
 
 @Composable
-fun getPlayerView(player: Player): PlayerView {
+fun rememberPlayerView(player: Player): PlayerView {
     val context = LocalContext.current
     val playerView = remember {
         PlayerView(context).apply {
@@ -194,6 +200,14 @@ fun getPlayerView(player: Player): PlayerView {
             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
             setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
             this.player = player
+        }
+    }
+    LaunchedEffect(key1 = player) {
+        playerView.player = player
+    }
+    DisposableEffect(key1 = true) {
+        onDispose {
+            playerView.player = null
         }
     }
     return playerView
