@@ -18,7 +18,7 @@ import javax.inject.Inject
 @HiltViewModel
 class TikTokViewModel @Inject constructor(
     private val repository: RedditDataRepository
-): ViewModel(), Player.Listener {
+): ViewModel() {
 
     private val _state = MutableStateFlow(VideoUiState())
     val state: StateFlow<VideoUiState> = _state
@@ -37,7 +37,6 @@ class TikTokViewModel @Inject constructor(
         if (state.value.player == null) {
             _state.value = state.value.copy(player = ExoPlayer.Builder(context).build().apply {
                 repeatMode = Player.REPEAT_MODE_ONE
-                addListener(this@TikTokViewModel)
                 setMediaItems(state.value.videos.toMediaItems())
                 prepare()
             })
@@ -47,14 +46,5 @@ class TikTokViewModel @Inject constructor(
     fun releasePlayer() {
         state.value.player?.release()
         _state.value = state.value.copy(player = null)
-    }
-
-    fun onPageChanged() {
-        _state.value = state.value.copy(showPlayer = false)
-    }
-
-    override fun onRenderedFirstFrame() {
-        super.onRenderedFirstFrame()
-        _state.value = state.value.copy(showPlayer = true)
     }
 }

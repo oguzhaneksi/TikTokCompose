@@ -1,13 +1,11 @@
 package com.example.tiktokcompose.ui.state
 
-import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import com.example.tiktokcompose.domain.models.VideoData
 
 data class VideoUiState(
     val player: Player? = null,
-    val videos: List<VideoData> = emptyList(),
-    val showPlayer: Boolean = false
+    val videos: List<VideoData> = emptyList()
 ) {
 
     fun playMediaAt(position: Int) {

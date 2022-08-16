@@ -33,6 +33,7 @@ import androidx.media3.ui.PlayerView
 import coil.compose.rememberAsyncImagePainter
 import com.example.tiktokcompose.domain.models.VideoData
 import com.example.tiktokcompose.ui.state.VideoUiState
+import com.example.tiktokcompose.util.showToast
 import com.example.tiktokcompose.viewmodel.TikTokViewModel
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.VerticalPager
@@ -73,7 +74,6 @@ fun VideoPager(
     LaunchedEffect(key1 = pagerState) {
         snapshotFlow { pagerState.currentPage }.distinctUntilChanged().collect { page ->
             pagerState.animateScrollToPage(page)
-            viewModel.onPageChanged()
         }
     }
 
@@ -90,7 +90,6 @@ fun VideoPager(
             VideoCard(
                 player = state.player,
                 video = state.videos[index],
-                showPlayer = state.showPlayer,
                 viewModel = viewModel
             )
         }
@@ -100,7 +99,6 @@ fun VideoPager(
 @Composable
 fun VideoCard(
     player: Player?,
-    showPlayer: Boolean,
     video: VideoData,
     viewModel: TikTokViewModel = hiltViewModel()
 ) {
@@ -116,7 +114,21 @@ fun VideoCard(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
+        var hasError by remember { mutableStateOf(false) }
+        var showPlayer by remember { mutableStateOf(false) }
         if (player != null) {
+            PlayerListener(
+                player = player
+            ) { event->
+                when (event) {
+                    Player.EVENT_RENDERED_FIRST_FRAME -> {
+                        showPlayer = true
+                    }
+                    Player.EVENT_PLAYER_ERROR -> {
+                        hasError = true
+                    }
+                }
+            }
             val playerView = rememberPlayerView(player)
             Player(
                 playerView = playerView
@@ -133,6 +145,9 @@ fun VideoCard(
                     .align(Alignment.Center)
                     .fillMaxSize()
             )
+        }
+        if (hasError) {
+            showToast(context, "An error occurred. Code: ${player?.playerError?.errorCode ?: 0}")
         }
     }
 }
