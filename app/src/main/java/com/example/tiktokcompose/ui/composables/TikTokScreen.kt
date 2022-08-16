@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
@@ -30,6 +31,7 @@ import androidx.media3.common.Player
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil.compose.rememberAsyncImagePainter
+import com.example.tiktokcompose.domain.models.VideoData
 import com.example.tiktokcompose.ui.state.VideoUiState
 import com.example.tiktokcompose.viewmodel.TikTokViewModel
 import com.google.accompanist.pager.ExperimentalPagerApi
@@ -48,12 +50,14 @@ fun TikTokScreen(
 ) {
     Box(
         modifier = modifier
-            .fillMaxSize(),
+            .fillMaxSize()
+            .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
         val state by viewModel.state.collectAsState()
         VideoPager(
-            state = state
+            state = state,
+            viewModel = viewModel
         )
     }
 }
@@ -69,6 +73,7 @@ fun VideoPager(
     LaunchedEffect(key1 = pagerState) {
         snapshotFlow { pagerState.currentPage }.distinctUntilChanged().collect { page ->
             pagerState.animateScrollToPage(page)
+            viewModel.onPageChanged()
         }
     }
 
@@ -81,10 +86,12 @@ fun VideoPager(
         }
     ) { index ->
         if (index == currentPage) {
-            state.prepareContent(index)
+            state.playMediaAt(index)
             VideoCard(
-                state = state,
-                page = currentPage
+                player = state.player,
+                video = state.videos[index],
+                showPlayer = state.showPlayer,
+                viewModel = viewModel
             )
         }
     }
@@ -92,8 +99,9 @@ fun VideoPager(
 
 @Composable
 fun VideoCard(
-    state: VideoUiState,
-    page: Int,
+    player: Player?,
+    showPlayer: Boolean,
+    video: VideoData,
     viewModel: TikTokViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -108,13 +116,13 @@ fun VideoCard(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        if (state.player != null) {
+        if (player != null) {
+            val playerView = rememberPlayerView(player)
             Player(
-                player = state.player!!
+                playerView = playerView
             )
         }
-        if (!state.showPlayer) {
-            val video = state.videos[page]
+        if (!showPlayer) {
             Image(
                 painter = rememberAsyncImagePainter(
                     model = video.previewImageUri
@@ -132,10 +140,9 @@ fun VideoCard(
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun Player(
-    player: Player,
+    playerView: PlayerView,
     modifier: Modifier = Modifier
 ) {
-    val playerView = rememberPlayerView(player)
     var playPauseIconVisibility by remember {
         mutableStateOf(false)
     }
@@ -198,14 +205,12 @@ fun rememberPlayerView(player: Player): PlayerView {
                 ViewGroup.LayoutParams.MATCH_PARENT)
             useController = false
             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-            setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
+            setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
             this.player = player
         }
     }
-    LaunchedEffect(key1 = player) {
+    DisposableEffect(key1 = player) {
         playerView.player = player
-    }
-    DisposableEffect(key1 = true) {
         onDispose {
             playerView.player = null
         }

@@ -7,6 +7,7 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.tiktokcompose.domain.repository.RedditDataRepository
 import com.example.tiktokcompose.ui.state.VideoUiState
+import com.example.tiktokcompose.util.toMediaItems
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +38,8 @@ class TikTokViewModel @Inject constructor(
             _state.value = state.value.copy(player = ExoPlayer.Builder(context).build().apply {
                 repeatMode = Player.REPEAT_MODE_ONE
                 addListener(this@TikTokViewModel)
+                setMediaItems(state.value.videos.toMediaItems())
+                prepare()
             })
         }
     }
