@@ -11,10 +11,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -93,6 +90,11 @@ fun VideoPager(
                 viewModel = viewModel
             )
         }
+        else {
+            Box {
+                VideoThumbnail(video = state.videos[index])
+            }
+        }
     }
 }
 
@@ -131,20 +133,12 @@ fun VideoCard(
             }
             val playerView = rememberPlayerView(player)
             Player(
-                playerView = playerView
+                playerView = playerView,
+                aspectRatio = video.aspectRatio ?: 1f
             )
         }
         if (!showPlayer) {
-            Image(
-                painter = rememberAsyncImagePainter(
-                    model = video.previewImageUri
-                ),
-                contentDescription = "Preview",
-                modifier = Modifier
-                    .aspectRatio(video.aspectRatio ?: 1f)
-                    .align(Alignment.Center)
-                    .fillMaxSize()
-            )
+            VideoThumbnail(video = video)
         }
         if (hasError) {
             showToast(context, "An error occurred. Code: ${player?.playerError?.errorCode ?: 0}")
@@ -152,11 +146,28 @@ fun VideoCard(
     }
 }
 
+@Composable
+fun BoxScope.VideoThumbnail(
+    video: VideoData
+) {
+    Image(
+        painter = rememberAsyncImagePainter(
+            model = video.previewImageUri
+        ),
+        contentDescription = "Preview",
+        modifier = Modifier
+            .aspectRatio(video.aspectRatio ?: 1f)
+            .align(Alignment.Center)
+            .fillMaxSize()
+    )
+}
+
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun Player(
     playerView: PlayerView,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    aspectRatio: Float
 ) {
     var playPauseIconVisibility by remember {
         mutableStateOf(false)
@@ -165,26 +176,30 @@ fun Player(
     var job: Job? by remember {
         mutableStateOf(null)
     }
-    Box {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        playPauseIconVisibility = false
+                        job?.cancel()
+                        playerView.player?.playWhenReady =
+                            playerView.player?.playWhenReady?.not() == true
+                        job = coroutineScope.launch {
+                            playPauseIconVisibility = true
+                            delay(800)
+                            playPauseIconVisibility = false
+                        }
+                    }
+                )
+            }
+    ) {
         AndroidView(
             factory = { playerView },
-            modifier = modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = {
-                            playPauseIconVisibility = false
-                            job?.cancel()
-                            playerView.player?.playWhenReady =
-                                playerView.player?.playWhenReady?.not() == true
-                            job = coroutineScope.launch {
-                                playPauseIconVisibility = true
-                                delay(800)
-                                playPauseIconVisibility = false
-                            }
-                        }
-                    )
-                }
+            modifier = Modifier
+                .aspectRatio(aspectRatio)
+                .align(Alignment.Center)
         )
         AnimatedVisibility(
             visible = playPauseIconVisibility,
