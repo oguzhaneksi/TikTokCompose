@@ -11,6 +11,7 @@ import java.util.concurrent.CancellationException
 class RedditDataRepositoryImpl(
     private val api: RedditApi
 ): RedditDataRepository {
+    private val tag = "RedditDataRepository"
     override fun getTikTokCringeVideos(): Flow<List<VideoData>> = flow {
         try {
             val response = api.tikTokCringe()
@@ -43,7 +44,7 @@ class RedditDataRepositoryImpl(
             emit(videoData)
         } catch (throwable: Throwable) {
             if (throwable is CancellationException) throw throwable
-            Log.d("asdf", "Error", throwable)
+            Log.e(tag, "Error", throwable)
         }
     }
 }
