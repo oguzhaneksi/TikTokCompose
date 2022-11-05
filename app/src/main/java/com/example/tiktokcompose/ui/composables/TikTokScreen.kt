@@ -3,6 +3,7 @@ package com.example.tiktokcompose.ui.composables
 import android.view.ViewGroup
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -24,12 +25,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil.compose.rememberAsyncImagePainter
 import com.example.tiktokcompose.domain.models.VideoData
+import com.example.tiktokcompose.ui.effect.AnimationEffect
+import com.example.tiktokcompose.ui.effect.PlayerErrorEffect
+import com.example.tiktokcompose.ui.effect.ResetAnimationEffect
 import com.example.tiktokcompose.ui.state.VideoUiState
+import com.example.tiktokcompose.util.findActivity
 import com.example.tiktokcompose.util.showToast
 import com.example.tiktokcompose.viewmodel.TikTokViewModel
 import com.google.accompanist.pager.ExperimentalPagerApi
@@ -108,7 +114,7 @@ fun VideoCard(
     ComposableLifecycle { _, event ->
         when (event) {
             Lifecycle.Event.ON_START -> viewModel.createPlayer(context)
-            Lifecycle.Event.ON_STOP -> viewModel.releasePlayer()
+            Lifecycle.Event.ON_STOP -> viewModel.releasePlayer(context.findActivity()?.isChangingConfigurations == true)
             else -> {}
         }
     }
@@ -116,7 +122,6 @@ fun VideoCard(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        var hasError by remember { mutableStateOf(false) }
         var showPlayer by remember { mutableStateOf(false) }
         if (player != null) {
             PlayerListener(
@@ -127,21 +132,19 @@ fun VideoCard(
                         showPlayer = true
                     }
                     Player.EVENT_PLAYER_ERROR -> {
-                        hasError = true
+                        viewModel.onPlayerError()
                     }
                 }
             }
             val playerView = rememberPlayerView(player)
             Player(
                 playerView = playerView,
+                viewModel = viewModel,
                 aspectRatio = video.aspectRatio ?: 1f
             )
         }
         if (!showPlayer) {
             VideoThumbnail(video = video)
-        }
-        if (hasError) {
-            showToast(context, "An error occurred. Code: ${player?.playerError?.errorCode ?: 0}")
         }
     }
 }
@@ -166,31 +169,27 @@ fun BoxScope.VideoThumbnail(
 @Composable
 fun Player(
     playerView: PlayerView,
+    viewModel: TikTokViewModel,
     modifier: Modifier = Modifier,
     aspectRatio: Float
 ) {
-    var playPauseIconVisibility by remember {
-        mutableStateOf(false)
+    var animatedIconDrawable by remember {
+        mutableStateOf(0)
     }
-    val coroutineScope = rememberCoroutineScope()
-    var job: Job? by remember {
+    val iconVisibleState = remember {
+        MutableTransitionState(false)
+    }
+    var animationJob: Job? by remember {
         mutableStateOf(null)
     }
+    val context = LocalContext.current
     Box(
         modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = {
-                        playPauseIconVisibility = false
-                        job?.cancel()
-                        playerView.player?.playWhenReady =
-                            playerView.player?.playWhenReady?.not() == true
-                        job = coroutineScope.launch {
-                            playPauseIconVisibility = true
-                            delay(800)
-                            playPauseIconVisibility = false
-                        }
+                        viewModel.onTappedScreen()
                     }
                 )
             }
@@ -202,7 +201,7 @@ fun Player(
                 .align(Alignment.Center)
         )
         AnimatedVisibility(
-            visible = playPauseIconVisibility,
+            visibleState = iconVisibleState,
             enter = scaleIn(
                 spring(Spring.DampingRatioMediumBouncy)
             ),
@@ -210,12 +209,7 @@ fun Player(
             modifier = Modifier.align(Alignment.Center)
         ) {
             Icon(
-                painter = painterResource(
-                    id = if (playerView.player?.playWhenReady == true)
-                    com.example.tiktokcompose.R.drawable.play
-                else
-                    com.example.tiktokcompose.R.drawable.pause
-                ),
+                painter = painterResource(animatedIconDrawable),
                 contentDescription = null,
                 tint = Color.White.copy(0.90f),
                 modifier = Modifier
@@ -223,9 +217,35 @@ fun Player(
             )
         }
     }
+    LaunchedEffect(key1 = true) {
+        viewModel.effect.collect { effect->
+            when (effect) {
+                is PlayerErrorEffect -> {
+                    val message = if (effect.code == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED || effect.code == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT)
+                        "Please check your internet connection"
+                    else
+                        "An error occurred. Code: ${effect.code}"
+                    showToast(context, message)
+                }
+                is AnimationEffect -> {
+                    animatedIconDrawable = effect.drawable
+                    animationJob = launch {
+                        iconVisibleState.targetState = true
+                        delay(800)
+                        iconVisibleState.targetState = false
+                    }
+                }
+                is ResetAnimationEffect -> {
+                    iconVisibleState.targetState = false
+                    animationJob?.cancel()
+                }
+            }
+        }
+    }
 }
 
 @Composable
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 fun rememberPlayerView(player: Player): PlayerView {
     val context = LocalContext.current
     val playerView = remember {
