@@ -40,20 +40,26 @@ class TikTokViewModel @Inject constructor(
     }
 
     fun createPlayer(context: Context) {
-        if (state.value.player == null) {
-            _state.value = state.value.copy(player = ExoPlayer.Builder(context).build().apply {
-                repeatMode = Player.REPEAT_MODE_ONE
-                setMediaItems(state.value.videos.toMediaItems())
-                prepare()
-            })
+        _state.update { state->
+            if (state.player == null) {
+                state.copy(player = ExoPlayer.Builder(context).build().apply {
+                    repeatMode = Player.REPEAT_MODE_ONE
+                    setMediaItems(state.videos.toMediaItems())
+                    prepare()
+                })
+            }
+            else
+                state
         }
     }
 
     fun releasePlayer(isChangingConfigurations: Boolean) {
         if (isChangingConfigurations)
             return
-        state.value.player?.release()
-        _state.value = state.value.copy(player = null)
+        _state.update { state->
+            state.player?.release()
+            state.copy(player = null)
+        }
     }
 
     fun onPlayerError() {
