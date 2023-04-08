@@ -9,10 +9,13 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,9 +41,6 @@ import com.example.tiktokcompose.ui.state.VideoUiState
 import com.example.tiktokcompose.util.findActivity
 import com.example.tiktokcompose.util.showToast
 import com.example.tiktokcompose.viewmodel.TikTokViewModel
-import com.google.accompanist.pager.ExperimentalPagerApi
-import com.google.accompanist.pager.VerticalPager
-import com.google.accompanist.pager.rememberPagerState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -66,7 +66,7 @@ fun TikTokScreen(
     }
 }
 
-@OptIn(ExperimentalPagerApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun VideoPager(
     state: VideoUiState,
@@ -81,14 +81,14 @@ fun VideoPager(
     }
 
     VerticalPager(
-        count = state.videos.size,
+        pageCount = state.videos.size,
         state = pagerState,
         horizontalAlignment = Alignment.CenterHorizontally,
         key = {
             state.videos[it].id
         }
     ) { index ->
-        if (index == currentPage) {
+        if (index == pagerState.currentPage) {
             state.playMediaAt(index)
             VideoCard(
                 player = state.player,
@@ -192,7 +192,8 @@ fun Player(
                         viewModel.onTappedScreen()
                     }
                 )
-            }
+            },
+        contentAlignment = Alignment.Center
     ) {
         AndroidView(
             factory = { playerView },
@@ -254,7 +255,7 @@ fun rememberPlayerView(player: Player): PlayerView {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT)
             useController = false
-            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
             setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
             this.player = player
         }
