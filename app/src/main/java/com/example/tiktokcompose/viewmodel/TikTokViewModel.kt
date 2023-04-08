@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import com.example.tiktokcompose.domain.repository.RedditDataRepository
+import com.example.tiktokcompose.domain.repository.VideoDataRepository
 import com.example.tiktokcompose.ui.effect.AnimationEffect
 import com.example.tiktokcompose.ui.effect.PlayerErrorEffect
 import com.example.tiktokcompose.ui.effect.ResetAnimationEffect
@@ -17,10 +17,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import javax.inject.Named
 
 @HiltViewModel
 class TikTokViewModel @Inject constructor(
-    private val repository: RedditDataRepository
+    @Named("reddit_data") private val repository: VideoDataRepository
 ): ViewModel() {
 
     private val _state = MutableStateFlow(VideoUiState())
@@ -31,7 +32,7 @@ class TikTokViewModel @Inject constructor(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            repository.getTikTokCringeVideos().collect {
+            repository.fetchData().collect {
                 _state.emit(VideoUiState(
                     videos = it
                 ))

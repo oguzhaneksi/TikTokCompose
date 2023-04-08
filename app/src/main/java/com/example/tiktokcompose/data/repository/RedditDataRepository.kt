@@ -3,16 +3,16 @@ package com.example.tiktokcompose.data.repository
 import android.util.Log
 import com.example.tiktokcompose.data.api.RedditApi
 import com.example.tiktokcompose.domain.models.VideoData
-import com.example.tiktokcompose.domain.repository.RedditDataRepository
+import com.example.tiktokcompose.domain.repository.VideoDataRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import java.util.concurrent.CancellationException
 
-class RedditDataRepositoryImpl(
+class RedditDataRepository(
     private val api: RedditApi
-): RedditDataRepository {
+): VideoDataRepository {
     private val tag = "RedditDataRepository"
-    override fun getTikTokCringeVideos(): Flow<List<VideoData>> = flow {
+    override fun fetchData(): Flow<List<VideoData>> = flow {
         try {
             val response = api.tikTokCringe()
             val videoData = response
