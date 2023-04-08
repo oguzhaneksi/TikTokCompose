@@ -17,6 +17,3 @@ An Android app built using Jetpack Compose that does TikTok/Reels/Youtube Shorts
 [Retrofit](https://square.github.io/retrofit/): A type-safe  HTTP client  for Android and Java
 
 [Moshi](https://github.com/square/moshi): Is a JSON library developed by Square for Android, Java and Kotlin.
-
-## Demo
-![Demo](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZjE2YTE4MzJjZmE2ZjU3MzZmNDFhNTI3ZjhiODVlM2U3ZDkzYjVjNyZjdD1n/tITQtLE1XtNe8Xbeo2/giphy.gif)
