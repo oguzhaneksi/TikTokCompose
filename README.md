@@ -6,8 +6,6 @@ An Android app built using Jetpack Compose that does TikTok/Reels/Youtube Shorts
 
 [Jetpack Compose](https://developer.android.com/jetpack/compose): Modern toolkit for building native UI.
 
-[Accompanist Pager](https://google.github.io/accompanist/pager/): Is an experimental API which provides paging feature (equivalent to ViewPager in XML) in Jetpack Compose. 
-
 [Coil](https://coil-kt.github.io/coil/): An image loading library for Android backed by Kotlin Coroutines
 
 [Dagger Hilt](https://developer.android.com/training/dependency-injection/hilt-android): Is a dependency injection library for Android that reduces the boilerplate of doing manual dependency injection in your project.
